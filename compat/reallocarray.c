@@ -1,9 +1,6 @@
+/*	$OpenBSD: reallocarray.c,v 1.3 2015/09/13 08:31:47 guenther Exp $	*/
 /*
- * OpenBSD vmd/vmctl modified for macOS with Apple Hypervisor Framework
- */
-
-/*
- * Copyright (c) 2015 Reyk Floeter <reyk@openbsd.org>
+ * Copyright (c) 2008 Otto Moerbeek <otto@drijf.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,34 +15,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#import <Foundation/Foundation.h>
-#import <Virtualization/Virtualization.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include <util.h>
-#include <err.h>
-#include <sys/stat.h>
-#include <sys/tty.h>
-#include "vmctl.h"
-#include "vmd.h"
+/*
+ * This is sqrt(SIZE_MAX+1), as s1*s2 <= SIZE_MAX
+ * if both s1 < MUL_NO_OVERFLOW and s2 < MUL_NO_OVERFLOW
+ */
+#define MUL_NO_OVERFLOW	((size_t)1 << (sizeof(size_t) * 4))
 
-int
-vm_opentty(struct vmconfig *vmcfg)
+void *
+reallocarray(void *optr, size_t nmemb, size_t size)
 {
-	int			 fd, ttys_fd;
-	char			 ptyname[VM_TTYNAME_MAX];
-
-	if (openpty(&fd, &ttys_fd, ptyname, NULL, NULL) == -1 ||
-	    (vmcfg->vm_ttyname = strdup(ptyname)) == NULL) {
-		fprintf(stderr, "%s: can't open tty %s", __func__, ptyname);
-		goto fail;
+	if ((nmemb >= MUL_NO_OVERFLOW || size >= MUL_NO_OVERFLOW) &&
+	    nmemb > 0 && SIZE_MAX / nmemb < size) {
+		errno = ENOMEM;
+		return NULL;
 	}
-
-	vmcfg->vm_tty = fd;
-
-	if (verbose > 1)
-		NSLog(@"Succesfully opened tty at %s", ptyname);
-
-	return (0);
-fail:
-	return (-1);
+	return realloc(optr, size * nmemb);
 }
+

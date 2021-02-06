@@ -1,4 +1,6 @@
-/*	$OpenBSD: vmctl.h,v 1.33 2019/12/17 09:43:00 kn Exp $	*/
+/*
+ * OpenBSD vmd/vmctl modified for macOS with Apple Hypervisor Framework
+ */
 
 /*
  * Copyright (c) 2015 Reyk Floeter <reyk@openbsd.org>
@@ -19,7 +21,11 @@
 #ifndef VMCTL_PARSER_H
 #define VMCTL_PARSER_H
 
+
 #define VMCTL_CU	"/usr/bin/cu"
+#define VMCTL_SCREEN	"/usr/bin/screen"
+
+int verbose;
 
 enum actions {
 	NONE,
@@ -44,6 +50,12 @@ struct ctl_command;
 
 struct parse_result {
 	enum actions		 action;
+	NSString		*kernelpath;
+	NSString		*initrdpath;
+	NSString		*kernelcmdline;
+	NSString		*lladdr;
+	int			tty_autoconnect;
+	int			vcpu;
 	uint32_t		 id;
 	char			*name;
 	char			*path;
@@ -62,7 +74,6 @@ struct parse_result {
 	unsigned int		 bootdevice;
 	struct ctl_command	*ctl;
 };
-
 struct ctl_command {
 	const char		*name;
 	enum actions		 action;
@@ -71,10 +82,18 @@ struct ctl_command {
 	int			 has_pledge;
 };
 
-struct imsgbuf	*ibuf;
+struct vmconfig {
+	uint32_t			 id;
+	char				*name;
+	int				 vm_tty;
+	char				*vm_ttyname;
+	VZVirtualMachineConfiguration	*vm;
+};
 
 /* main.c */
+int	 ctl_start(struct parse_result *, int, char *[]);
 int	 vmmaction(struct parse_result *);
+int	 parse_vcpu(struct parse_result *, char *, int);
 int	 parse_ifs(struct parse_result *, char *, int);
 int	 parse_network(struct parse_result *, char *);
 int	 parse_size(struct parse_result *, char *);
@@ -85,34 +104,30 @@ int	 parse_instance(struct parse_result *, char *);
 void	 parse_free(struct parse_result *);
 int	 parse(int, char *[]);
 __dead void
-	 ctl_openconsole(const char *);
-
-/* vmctl.c */
-int	 open_imagefile(int, const char *, int,
-	    struct virtio_backing *, off_t *);
-int	 create_imagefile(int, const char *, const char *, long, const char **);
-int	 create_raw_imagefile(const char *, long);
-int	 create_qc2_imagefile(const char *, const char *, long);
-int	 vm_start(uint32_t, const char *, int, int, char **, int,
-	    char **, int *, char *, char *, char *, unsigned int);
-int	 vm_start_complete(struct imsg *, int *, int);
-void	 terminate_vm(uint32_t, const char *, unsigned int);
-int	 terminate_vm_complete(struct imsg *, int *, unsigned int);
-void	 waitfor_vm(uint32_t, const char *);
-void	 pause_vm(uint32_t, const char *);
-int	 pause_vm_complete(struct imsg *, int *);
-void	 unpause_vm(uint32_t, const char *);
-int	 unpause_vm_complete(struct imsg *, int *);
-void	 send_vm(uint32_t, const char *);
-void	 vm_receive(uint32_t, const char *);
-int	 check_info_id(const char *, uint32_t);
-void	 get_info_vm(uint32_t, const char *, enum actions, unsigned int);
-int	 add_info(struct imsg *, int *);
-const char
-	*vm_state(unsigned int);
-void	 print_vm_info(struct vmop_info_result *, size_t);
-void	 terminate_all(struct vmop_info_result *, size_t, unsigned int);
+	 ctl_openconsole(struct vmconfig *);
 __dead void
-	 vm_console(struct vmop_info_result *, size_t);
+	 ctl_closeconsole(struct vmconfig *);
+
+/* config.m */
+int	vmcfg_init(struct parse_result *, struct vmconfig *);
+int	vmcfg_vhw(struct parse_result *, VZVirtualMachineConfiguration *);
+int	vmcfg_boot(struct parse_result *, VZVirtualMachineConfiguration *);
+int	vmcfg_net(struct parse_result *, VZVirtualMachineConfiguration *);
+int	vmcfg_storage(struct parse_result *, VZVirtualMachineConfiguration *);
+int	vmcfg_console(struct parse_result *, struct vmconfig *);
+int	vmcfg_misc(struct parse_result *, VZVirtualMachineConfiguration *);
+
+/* vm.m */
+int	vm_action(struct parse_result *);
+int	run_vm(struct parse_result *, struct vmconfig *);
+
+/* vmd.m */
+int	vm_opentty(struct vmconfig *);
+
+/* realllocarray.c */
+void	*reallocarray(void *, size_t , size_t );
+
+/* fmt_scaled.c */
+int	scan_scaled(char *, long long *);
 
 #endif /* VMCTL_PARSER_H */
