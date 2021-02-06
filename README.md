@@ -21,3 +21,5 @@ To start the VM in verbose mode:
 This will automatically spawn a new screen session to interact with the guest.
 
 Multiple disks can be attached by repeating the -d flag.
+
+The -l flag can be used to specify the linklocal address.
