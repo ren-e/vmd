@@ -33,22 +33,26 @@ int
 vm_action(struct parse_result *res)
 {
 	int r = -1;
-	struct vmconfig *vmcfg = malloc(sizeof(struct vmconfig));
-	bzero(vmcfg, sizeof(struct vmconfig));
+	struct vmconfig vmcfg;
 
-	vmcfg->vm = [
+	memset(&vmcfg, 0, sizeof(vmcfg));
+	
+	vmcfg.vm = [
 		[VZVirtualMachineConfiguration alloc]
 		init
 	];
-	if (vmcfg_init(res, vmcfg))
+	if (vmcfg_init(res, &vmcfg))
 		goto done;
 
 
-	r = run_vm(res, vmcfg);
+	r = run_vm(res, &vmcfg);
 
 done:
-	if (vmcfg)
-		free(vmcfg);
+	if (vmcfg.vm)
+		[vmcfg.vm release];
+
+	if (vmcfg.vm_tty)
+		close(vmcfg.vm_tty);
 
 	return (r);
 }
@@ -111,6 +115,9 @@ run_vm(struct parse_result *res, struct vmconfig *vmcfg)
 	waitpid(pid, 0, 0);
 	usleep(100);
 	NSLog(@"VM %s has shutdown with state %ld", vmcfg->name, vm.state);
+
+	if (vm)
+		[vm release];
 
 	return (0);
 }
