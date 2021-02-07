@@ -69,6 +69,7 @@ err:
 		NSLog(@"Failed to initialize VM configuration: %@", error);
 	else
 		NSLog(@"Failed to initialize VM configuration");
+
 	return (-1);
 }
 
@@ -101,7 +102,9 @@ vmcfg_boot(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 		[VZLinuxBootLoader alloc]
 		initWithKernelURL:kernelURL
 	];
-	[linux setCommandLine:res->kernelcmdline];
+
+	if (res->kernelcmdline)
+		[linux setCommandLine:res->kernelcmdline];
 
 	if (res->initrdpath) {
 		initrdURL = [NSURL fileURLWithPath:res->initrdpath];
@@ -116,9 +119,11 @@ vmcfg_boot(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 		NSLog(@"Assigned file \"%@\" to kernel",
 		[res->kernelpath lastPathComponent]
 		);
-		NSLog(@"Assigned file \"%@\" to initramfs",
-		[res->initrdpath lastPathComponent]
-		);
+		if (res->initrdpath) {
+			NSLog(@"Assigned file \"%@\" to initramfs",
+			[res->initrdpath lastPathComponent]
+			);
+		}
 	}
 	return (0);
 err:
@@ -154,7 +159,7 @@ vmcfg_net(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 	}
 
 	if (lladdr == NULL) {
-		NSLog(@"Unable to assign linklocal address to vio0");
+		NSLog(@"Unable to assign link layer address to vio0");
 		goto done;
 	}
 
@@ -167,7 +172,7 @@ vmcfg_net(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 		goto err;
 
 	if (verbose > 1)
-		NSLog(@"Assigned linklocal address %@ to vio0", lladdr);
+		NSLog(@"Assigned link layer address %@ to vio0", lladdr);
 
 	return (0);
 err:

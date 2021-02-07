@@ -15,11 +15,19 @@ make
 ### Run
 To start the VM in verbose mode:
 ```
-./vmctl -v start -cb vmlinuz -i initrd.gz -k "console=hvc0 root=/dev/vda" -d disk.img -m 1g -p 1 vm_name
+./vmctl -v start -cb vmlinuz \
+	-i initrd.gz \
+	-k "console=hvc0 root=/dev/vda" \
+	-d disk.img \
+	-l 01:23:45:67:89:ab \
+	-m 1g \
+	-p 1 \
+	vm_name
 ```
 
 This will automatically spawn a new screen session to interact with the guest.
 
 Multiple disks can be attached by repeating the -d flag.
 
-The -l flag can be used to specify the linklocal address.
+The -l flag can be used to specify the link layer address (MAC address).
+This should be specified as six colon-separated hex values.
