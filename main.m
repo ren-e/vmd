@@ -184,6 +184,8 @@ ctl_start(struct parse_result *res, int argc, char *argv[])
 			res->lladdr = [NSString stringWithUTF8String:optarg];
 			break;
 		case 'c':
+			if (access("/var/spool/uucp/", W_OK) != 0)
+				errx(1, "Ensure directory /var/spool/uucp/ is writable");
 			res->tty_autoconnect = 1;
 			break;
 		default:
@@ -316,17 +318,9 @@ __dead void
 ctl_openconsole(struct vmconfig *vmcfg)
 {
 	if (verbose > 1)
-		NSLog(@"Spawning screen session");
+		NSLog(@"Spawning console session, press ~. to terminate.");
 
-	execl(VMCTL_SCREEN, VMCTL_SCREEN, "-S", vmcfg->name,
-		vmcfg->vm_ttyname, (char *)NULL);
+	execl(VMCTL_CU, VMCTL_CU, "-l", vmcfg->vm_ttyname, "-s", "115200",
+		(char *)NULL);
 	err(1, "failed to open the console");
-}
-
-__dead void
-ctl_closeconsole(struct vmconfig *vmcfg)
-{
-	execl(VMCTL_SCREEN, VMCTL_SCREEN, "-S", vmcfg->name, "-X",
-		"quit", (char *)NULL);
-	err(1, "failed to close the console");
 }

@@ -25,9 +25,25 @@ To start the VM in verbose mode:
 	vm_name
 ```
 
-This will automatically spawn a new screen session to interact with the guest.
+This will automatically spawn a new console session to interact with the guest.
 
 Multiple disks can be attached by repeating the -d flag.
 
-The -l flag can be used to specify the link layer address (MAC address).
-This should be specified as six colon-separated hex values.
+The -l flag can be used to specify the link layer address (MAC address). This
+should be specified as six colon-separated hex values.
+
+### Shutdown
+To shutdown a running VM press CTRL+C in the terminal, or send the SIGINT
+signal. When a cu session is still running, first enter ~., and then CTRL+C.
+Keep repeating the signal to forcefully shutdown the VM.
+
+### Console handling
+The program cu is used to facilitate the console. When the -c flag has been used
+with vmctl, then the console will automatically open. The uucp directory must be
+writable, which can be fixed with:
+```
+sudo chmod 775 /var/spool/uucp/
+sudo chgrp staff /var/spool/uucp/
+```
+
+If cu doesn't respond to ~ commands, make sure to enter CTRL+D first.

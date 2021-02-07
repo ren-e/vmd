@@ -23,7 +23,6 @@
 
 
 #define VMCTL_CU	"/usr/bin/cu"
-#define VMCTL_SCREEN	"/usr/bin/screen"
 
 int verbose;
 
@@ -120,6 +119,7 @@ int	vmcfg_misc(struct parse_result *, VZVirtualMachineConfiguration *);
 /* vm.m */
 int	vm_action(struct parse_result *);
 int	run_vm(struct parse_result *, struct vmconfig *);
+int	stop_vm(dispatch_queue_t *, VZVirtualMachine *);
 
 /* vmd.m */
 int	vm_opentty(struct vmconfig *);
