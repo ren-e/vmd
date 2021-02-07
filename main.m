@@ -199,6 +199,13 @@ ctl_start(struct parse_result *res, int argc, char *argv[])
 	if (argc != 1)
 		ctl_usage(res->ctl);
 
+	/* Set defaults for vCPU and memory */
+	if (res->vcpu == 0)
+		res->vcpu = 1;
+
+	if (res->size == 0)
+		res->size = 512 * 1024 * 1024;
+
 	if (parse_vmid(res, argv[0], 0) == -1)
 		errx(1, "invalid id: %s", argv[0]);
 
