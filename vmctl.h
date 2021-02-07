@@ -104,8 +104,6 @@ void	 parse_free(struct parse_result *);
 int	 parse(int, char *[]);
 __dead void
 	 ctl_openconsole(struct vmconfig *);
-__dead void
-	 ctl_closeconsole(struct vmconfig *);
 
 /* config.m */
 int	vmcfg_init(struct parse_result *, struct vmconfig *);
