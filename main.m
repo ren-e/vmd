@@ -24,6 +24,8 @@
 #include <err.h>
 #include <sys/stat.h>
 #include <sys/tty.h>
+#include <sys/sysctl.h>
+
 #include "vmctl.h"
 #include "vmd.h"
 
@@ -252,9 +254,14 @@ int
 parse_vcpu(struct parse_result *res, char *word, int val)
 {
 	const char	*error;
+	int32_t		 max = 1;
+	size_t		 maxlen = sizeof(max);
+
+	if (sysctlbyname("hw.logicalcpu_max", &max, &maxlen, NULL, 0))
+		warnx("could not retrieve logical cpu count max");
 
 	if (word != NULL) {
-		val = strtonum(word, 1, 4, &error);
+		val = strtonum(word, 1, max, &error);
 		if (error != NULL)  {
 			warnx("count is %s: %s", error, word);
 			return (-1);
