@@ -27,6 +27,10 @@
 #include "vmctl.h"
 #include "vmd.h"
 
+#ifdef WITH_EFI
+  #include "compat/VZEFIVariableStore.h"
+  #include "compat/VZEFIBootLoader.h"
+#endif
 
 int
 vmcfg_init(struct parse_result *res, struct vmconfig *vmcfg)
@@ -40,8 +44,18 @@ vmcfg_init(struct parse_result *res, struct vmconfig *vmcfg)
 	/* Configure VM */
 	if (vmcfg_vhw(res, vmcfg->vm))
 		goto err;
+#ifdef WITH_EFI
+	if (res->efi) {
+		if (vmcfg_efi_boot(res, vmcfg->vm))
+			goto err;
+	} else {
+		if (vmcfg_boot(res, vmcfg->vm))
+			goto err;
+	}
+#else
 	if (vmcfg_boot(res, vmcfg->vm))
 		goto err;
+#endif
 	if (vmcfg_storage(res, vmcfg->vm))
 		goto err;
 	if (vmcfg_net(res, vmcfg->vm))
@@ -90,13 +104,59 @@ err:
 	return (-1);
 }
 
+#ifdef WITH_EFI
+
+/*
+ * XXX: Play time, but it will come when it comes.
+ */
+
+int
+vmcfg_efi_boot(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
+{
+	NSError *error = nil;
+	NSURL *efiURL = [NSURL fileURLWithPath:res->kernelpath];
+	NSURL *variableStoreURL = [NSURL fileURLWithPath:@"nvram.plist"];
+
+	_VZEFIBootLoader *efi = [
+		[_VZEFIBootLoader alloc]
+		init
+	];
+	[efi setEfiURL:efiURL];
+
+	/* XXX: -EE enables EFI Variable Store, plist ??? */
+	if (res->efi == 2) {
+		_VZEFIVariableStore *vars = [
+			[_VZEFIVariableStore alloc]
+			initWithURL:variableStoreURL
+			error:&error
+		];
+
+		[efi setVariableStore:vars];
+	}
+	[vmcfg setBootLoader:efi];
+
+	if (error)
+		goto err;
+
+	if (verbose > 1) {
+		NSLog(@"Assigned file \"%@\" to EFI firmware",
+		[res->kernelpath lastPathComponent]
+		);
+	}
+	return (0);
+err:
+	NSLog(@"Unable to configure boot loader: %@", error);
+	return (-1);
+}
+#endif
+
 int
 vmcfg_boot(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 {
 	NSError *error = nil;
 	NSURL *kernelURL = [NSURL fileURLWithPath:res->kernelpath];
 	NSURL *initrdURL;
-	
+
 	/* Linux bootloader and initramfs  */
 	VZLinuxBootLoader *linux = [
 		[VZLinuxBootLoader alloc]
@@ -200,7 +260,7 @@ vmcfg_storage(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 			[VZDiskImageStorageDeviceAttachment alloc]
 			initWithURL:diskurl
 			readOnly:false
-                        error:nil
+                        error:&error
 		];
 
 		if (sd) {

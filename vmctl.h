@@ -72,6 +72,9 @@ struct parse_result {
 	unsigned int		 mode;
 	unsigned int		 bootdevice;
 	struct ctl_command	*ctl;
+#ifdef WITH_EFI
+	int			 efi;
+#endif
 };
 struct ctl_command {
 	const char		*name;
@@ -113,6 +116,9 @@ int	vmcfg_net(struct parse_result *, VZVirtualMachineConfiguration *);
 int	vmcfg_storage(struct parse_result *, VZVirtualMachineConfiguration *);
 int	vmcfg_console(struct parse_result *, struct vmconfig *);
 int	vmcfg_misc(struct parse_result *, VZVirtualMachineConfiguration *);
+#ifdef WITH_EFI
+int	vmcfg_efi_boot(struct parse_result *, VZVirtualMachineConfiguration *);
+#endif
 
 /* vm.m */
 int	vm_action(struct parse_result *);

@@ -140,7 +140,12 @@ ctl_start(struct parse_result *res, int argc, char *argv[])
 	int		 ch, type;
 	char		 path[PATH_MAX];
 
-	while ((ch = getopt(argc, argv, "b:k:i:d:m:p:l:c")) != -1) {
+#ifdef WITH_EFI
+  #define CTL_START_OPT "b:k:i:d:m:p:l:cE"
+#else
+  #define CTL_START_OPT "b:k:i:d:m:p:l:c"
+#endif
+	while ((ch = getopt(argc, argv, CTL_START_OPT)) != -1) {
 		switch (ch) {
                 case 'b':
 			if (res->kernelpath)
@@ -190,6 +195,12 @@ ctl_start(struct parse_result *res, int argc, char *argv[])
 				errx(1, "Ensure directory /var/spool/uucp/ is writable");
 			res->tty_autoconnect = 1;
 			break;
+#ifdef WITH_EFI
+		/* XXX: Testing only! */
+		case 'E':
+			res->efi += 1;
+			break;
+#endif
 		default:
 			ctl_usage(res->ctl);
 			/* NOTREACHED */
