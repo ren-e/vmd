@@ -27,10 +27,6 @@
 #include "vmctl.h"
 #include "vmd.h"
 
-#ifdef WITH_EFI
-  #include "compat/VZEFIVariableStore.h"
-  #include "compat/VZEFIBootLoader.h"
-#endif
 
 int
 vmcfg_init(struct parse_result *res, struct vmconfig *vmcfg)
@@ -107,45 +103,51 @@ err:
 #ifdef WITH_EFI
 
 /*
- * XXX: Play time, but it will come when it comes.
+ * XXX: Requires macOS Ventura
  */
 
 int
 vmcfg_efi_boot(struct parse_result *res, VZVirtualMachineConfiguration *vmcfg)
 {
 	NSError *error = nil;
-	NSURL *efiURL = [NSURL fileURLWithPath:res->kernelpath];
-	NSURL *variableStoreURL = [NSURL fileURLWithPath:@"nvram.plist"];
+	NSURL *variableStoreURL = [NSURL fileURLWithPath:@"nvram.var"];
+	VZEFIVariableStoreInitializationOptions opt = 0;
 
-	_VZEFIBootLoader *efi = [
-		[_VZEFIBootLoader alloc]
+	VZEFIBootLoader *efi = [
+		[VZEFIBootLoader alloc]
 		init
 	];
-	[efi setEfiURL:efiURL];
 
-	/* XXX: -EE enables EFI Variable Store, plist ??? */
-	if (res->efi == 2) {
-		_VZEFIVariableStore *vars = [
-			[_VZEFIVariableStore alloc]
-			initWithURL:variableStoreURL
+	VZGenericMachineIdentifier *mid = [
+		[VZGenericMachineIdentifier alloc]
+		init
+	];
+
+	VZGenericPlatformConfiguration *platform = [
+		[VZGenericPlatformConfiguration alloc]
+		init
+	];
+
+	VZEFIVariableStore *vars = [
+			[VZEFIVariableStore alloc]
+			initCreatingVariableStoreAtURL:variableStoreURL
+			options:opt
 			error:&error
-		];
+	];
 
-		[efi setVariableStore:vars];
-	}
+	/* XXX: machineIdentifier should be written to disk */
+	[platform setMachineIdentifier:mid];
+
+	[efi setVariableStore:vars];
+	[vmcfg setPlatform:platform];
 	[vmcfg setBootLoader:efi];
 
 	if (error)
 		goto err;
 
-	if (verbose > 1) {
-		NSLog(@"Assigned file \"%@\" to EFI firmware",
-		[res->kernelpath lastPathComponent]
-		);
-	}
 	return (0);
 err:
-	NSLog(@"Unable to configure boot loader: %@", error);
+	NSLog(@"Unable to configure EFI boot loader: %@", error);
 	return (-1);
 }
 #endif
